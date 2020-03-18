@@ -314,11 +314,8 @@ const Router = createBrowserApp(Navigator);
 
 #### Video 
 
-For video we use the maintained react-native-video plugin that works great for native app.<br />
-But this plugn doesn't provides support for react-native-web so we have to create the same API for web :
+For video we use the react-native-video plugin that works great for native app.<br />
+But this plugn doesn't provides support for react-native-web so we have to create the same API for web using <video> element :
 
-See the project Video component : ![Video](./src/components/demos/Video.js)
-
-
-
+See this file as example : https://github.com/dev-seb/react-native-tv-demo/blob/master/src/components/demos/Video.js
 
