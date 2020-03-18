@@ -103,6 +103,7 @@ Install and build from sources :
 ```
 git clone git@github.com:dev-seb/react-native-web.git
 cd react-native-web/
+git checkout feature/tv-support
 npm install
 npm run compile
 ```
