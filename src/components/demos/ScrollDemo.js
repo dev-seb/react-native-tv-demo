@@ -1,163 +1,90 @@
-import React, {Component} from 'react';
-import {
-  Platform,
-  ScrollView,
-  TouchableHighlight,
-  TouchableOpacity,
-  View,
-  Text,
-  StyleSheet,
-  findNodeHandle
-} from 'react-native';
-import Style from "../Style";
+import React, {useState} from 'react';
+import {StyleSheet, Text, View} from 'react-native';
+import Style from '../../styles/Style';
+import FocusableHighlight from '../focusable/FocusableHighlight';
+import ScrollViewDemo from './ScrollViewDemo';
+import FlatListDemo from './FlatListDemo';
+import SectionListDemo from './SectionListDemo';
 
-class ScrollDemo extends Component {
+const TAB_SCROLLVIEW = 'scroll';
+const TAB_FLATLIST = 'flatlist';
+const TAB_SECTIONLIST = 'sectionlist';
 
-  constructor(props) {
-    super(props);
-    // Bind functions
-    this.onItemFocus = this.onItemFocus.bind(this);
-    // Init refs
-    this.rowsRef = React.createRef();
-    this.rowRefs = [];
+const tabs = [
+  {
+    type: TAB_SCROLLVIEW,
+    text: 'ScrollView',
+  },
+  {
+    type: TAB_FLATLIST,
+    text: 'FlatList',
+  },
+  {
+    type: TAB_SECTIONLIST,
+    text: 'SectionList',
+  },
+];
+
+const ScrollDemo = () => {
+  const [selectedTab, setSelectedTab] = useState(TAB_SCROLLVIEW);
+
+  function isSelected(tab) {
+    return selectedTab === tab;
   }
 
-  componentDidMount() {
-    if(Platform.OS === "web") {
-      // Set row spatial navigation action as focus to avoid scroll on up
-      for (let i = 0; i < this.rowRefs.length; i++) {
-        const rowRef = this.rowRefs[i];
-        if (rowRef) {
-          let node = findNodeHandle(rowRef);
-          if (node) {
-            node.style.setProperty('--spatial-navigation-action', 'focus');
-          }
-        }
-      }
-    }
-  }
-
-  onItemFocus(e, row, item) {
-    if(row > 0 && row < this.rowRefs.length) {
-      // Check refs
-      const rowRef = this.rowRefs[row];
-      if (!rowRef || !this.rowsRef) {
-        return;
-      }
-      // Get styles
-      const rowsStyle = StyleSheet.flatten(styles.rows);
-      const rowItemStyle = StyleSheet.flatten(styles.rowItem);
-      // Get rows width / height
-      const rowsWidth = rowsStyle.width;
-      const rowsHeight = rowsStyle.height;
-      // Get item width / height
-      const itemWidth = rowItemStyle.width + rowItemStyle.margin * 2;
-      const itemHeight = rowItemStyle.height + rowItemStyle.margin * 2;
-      // Get horizontal offset for current item in current row
-      const itemLeftOffset = itemWidth * (item - 1);
-      // Get vertical offset for current row in rows
-      const itemTopOffset = itemHeight * (row - 1);
-      // Center item horizontally in row
-      const rowsWidthHalf = rowsWidth / 2;
-      if (itemLeftOffset >= rowsWidthHalf) {
-        const x = itemLeftOffset - rowsWidthHalf + itemWidth / 2;
-        rowRef.scrollTo({x: x, animated: true});
-      }
-      else {
-        rowRef.scrollTo({x: 0, animated: true});
-      }
-      // Scroll vertically to current row
-      const rowsHeightHalf = rowsHeight / 2;
-      if (itemTopOffset >= rowsHeightHalf - itemHeight) {
-        const y = itemTopOffset;
-        this.rowsRef.scrollTo({y: y, animated: true});
-      }
-      else {
-        this.rowsRef.scrollTo({y: 0, animated: true});
-      }
-    }
-  }
-
-  showItems(row) {
-    const items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-    return items.map((item) => {
-      const key = 'item_' + row + '.' + item;
+  function showTabs() {
+    return tabs.map((tab, key) => {
       return (
-        <TouchableHighlight
-          onPress={()=>{}}
-          onFocus={(e)=>{this.onItemFocus(e, row, item)}}
+        <FocusableHighlight
+          onFocus={() => {}}
+          onPress={() => setSelectedTab(tab.type)}
+          style={[styles.tab, selectedTab === tab.type && styles.tabSelected]}
           underlayColor={Style.buttonFocusedColor}
-          style={styles.rowItem}
-          nativeID={key}
+          nativeID={'tab_' + tab.type}
           key={key}>
-          <Text style={styles.text}>{row + '.' + item}</Text>
-        </TouchableHighlight>
+          <Text style={styles.tabText}>{tab.text}</Text>
+        </FocusableHighlight>
       );
     });
   }
 
-  showRow(row) {
-    return (
-      <ScrollView
-        ref={ref => this.rowRefs[row] = ref}
-        style={styles.row}
-        horizontal={true}
-        showsHorizontalScrollIndicator={false}
-        nativeID={'row_' + row}
-        key={'row_' + row}>
-        {this.showItems(row)}
-      </ScrollView>
-    )
-  }
-
-  showRows() {
-    const rows = [1, 2, 3, 4, 5];
-    return rows.map((row) => {
-      return this.showRow(row);
-    });
-  }
-
-  render() {
-    return (
-      <View style={Style.styles.right}>
-        <View style={Style.styles.header}>
-          <Text style={Style.styles.headerText}>{"Scroll Demo"}</Text>
-        </View>
-        <View style={Style.styles.content}>
-        <ScrollView
-          ref={ref => this.rowsRef = ref}
-          style={styles.rows}
-          nativeID={"rows"}
-          showsVerticalScrollIndicator={false}>
-          {this.showRows()}
-        </ScrollView>
-        </View>
+  return (
+    <View style={Style.styles.right}>
+      <View style={Style.styles.header}>
+        <Text style={[Style.styles.headerText, {marginTop: 40}]}>
+          {'Scroll Demo'}
+        </Text>
+        <View style={styles.tabs}>{showTabs()}</View>
       </View>
-    );
-  }
-}
+      {isSelected(TAB_SCROLLVIEW) && <ScrollViewDemo />}
+      {isSelected(TAB_FLATLIST) && <FlatListDemo />}
+      {isSelected(TAB_SECTIONLIST) && <SectionListDemo />}
+    </View>
+  );
+};
 
 export default ScrollDemo;
 
 const styles = StyleSheet.create({
-  rows: {
-    width: Style.px(1520),
-    height: Style.px(780),
-  },
-  row: {
-    width: '100%',
-    height: Style.px(260),
-  },
-  rowItem: {
-    width: Style.px(284),
-    height: Style.px(240),
-    margin: Style.px(10),
-    backgroundColor: Style.buttonUnfocusedColor,
+  tabs: {
     flex: 1,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  text: {
-    fontSize: Style.px(40),
-  }
+  tab: {
+    width: Style.px(200),
+    height: Style.px(100),
+    margin: Style.px(10),
+    backgroundColor: Style.buttonUnfocusedColor,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tabSelected: {
+    borderWidth: Style.px(10),
+    borderColor: '#628fbd',
+  },
+  tabText: {
+    fontSize: Style.px(20),
+  },
 });

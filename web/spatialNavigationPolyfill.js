@@ -789,7 +789,6 @@
    * @param offset {Number} - The explicit amount of offset for scrolling. Default value is 0.
    */
   function moveScroll(element, dir, offset = 0) {
-    console.log("move scroll");
     if (element) {
       switch (dir) {
         case 'left':
@@ -2547,7 +2546,6 @@
    * @param offset {Number} - The explicit amount of offset for scrolling. Default value is 0.
    */
   function moveScroll(element, dir, offset = 0) {
-    console.log("move scroll");
     if (element) {
       switch (dir) {
         case 'left':

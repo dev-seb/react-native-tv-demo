@@ -1,130 +1,116 @@
-import React, {Component} from 'react';
+import React, {useState, useCallback} from 'react';
 import {
   View,
   Text,
-  TouchableHighlight,
   StyleSheet,
   TVEventHandler,
+  BackHandler,
 } from 'react-native';
-import Style from "../Style";
+import {useFocusEffect} from '@react-navigation/native';
+import Style from '../../styles/Style';
+import FocusableHighlight from '../focusable/FocusableHighlight';
 
-class EventsDemo extends Component {
+const EVENT_LINES = 8;
 
-  static EVENT_LINES = 8;
+const EventsDemo = () => {
+  const [tvEventStack, setTvEventStack] = useState([]);
+  const [componentEventStack, setComponentEventStack] = useState([]);
 
-  constructor(props) {
-    super(props);
-    // Init
-    this.tvEventHandler = null;
-    // Init state
-    this.state = {
-      handlerStatus: 'disabled',
-      tvEventStack: [],
-      componentEventStack: [],
-    };
+  useFocusEffect(
+    useCallback(() => {
+      // Listen to back button
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        backEventListener,
+      );
+      // Enabled TVEventHandler
+      const tvEventHandler = new TVEventHandler();
+      tvEventHandler.enable(null, tvEventListener);
+      // Clean up
+      return () => {
+        // Remove BackHandler
+        backHandler.remove();
+        // Disable TVEventHandler
+        tvEventHandler.disable();
+      };
+    }, []),
+  );
+
+  function backEventListener(event) {
+    // Just add some logs here as navigation will change screen
+    console.log('backEventListener received hardwareBackPress event');
+    console.log(JSON.stringify(event));
   }
 
-  tvEventListener(component, event) {
-    console.log("tvEventListener:", event.eventType);
-    // Get event stack
-    let tvEventStack = this.state.tvEventStack;
-    if(tvEventStack.length >= EventsDemo.EVENT_LINES) {
-      tvEventStack.shift();
-    }
-    tvEventStack.push(JSON.stringify(event));
-    this.setState({
-      tvEventStack: tvEventStack
-    });
+  function tvEventListener(component, event) {
+    //console.log('tvEventListener:', event.eventType);
+    setTvEventStack((oldTvEventStack) =>
+      [...oldTvEventStack, JSON.stringify(event)].slice(EVENT_LINES * -1),
+    );
   }
 
-  componentEventListener(event) {
-    if(!event.eventType) {
+  function componentEventListener(event) {
+    if (!event.eventType) {
       return;
     }
-    console.log("componentEventListener:", event.eventType);
-    // Get event stack
-    let componentEventStack = this.state.componentEventStack;
-    if(componentEventStack.length >= EventsDemo.EVENT_LINES) {
-      componentEventStack.shift();
-    }
-    componentEventStack.push(JSON.stringify(event));
-    this.setState({
-      componentEventStack: componentEventStack
-    });
-  }
-
-  componentDidMount() {
-    this.setState({
-      handlerStatus: 'enabled'
-    });
-    this.tvEventHandler = new TVEventHandler();
-    this.tvEventHandler.enable(
-      this, this.tvEventListener.bind(this)
+    //console.log('componentEventListener:', event.eventType);
+    setComponentEventStack((oldComponentEventStack) =>
+      [...oldComponentEventStack, JSON.stringify(event)].slice(
+        EVENT_LINES * -1,
+      ),
     );
   }
 
-  componentWillUnmount() {
-    if (this.tvEventHandler) {
-      this.tvEventHandler.disable();
-      delete this.tvEventHandler;
-    }
-    this.setState({
-      handlerStatus: 'disabled',
-      tvEventStack: [],
-      componentEventStack: [],
-    });
-  }
-
-  render() {
-    return (
-      <View style={Style.styles.right}>
-        <View style={Style.styles.header}>
-          <Text style={Style.styles.headerText}>{"Events Demo"}</Text>
-        </View>
-        <View style={Style.styles.content}>
-          <View style={styles.buttons}>
-            <TouchableHighlight
-              onPress={this.componentEventListener.bind(this)}
-              onFocus={this.componentEventListener.bind(this)}
-              onBlur={this.componentEventListener.bind(this)}
-              nativeID={'left_button'}
-              style={styles.button}
-              underlayColor={Style.buttonFocusedColor}>
-              <Text style={styles.buttonText}>{"Left Button"}</Text>
-            </TouchableHighlight>
-            <TouchableHighlight
-              onPress={this.componentEventListener.bind(this)}
-              onFocus={this.componentEventListener.bind(this)}
-              onBlur={this.componentEventListener.bind(this)}
-              nativeID={'middle_button'}
-              style={styles.button}
-              hasTVPreferredFocus={true}
-              underlayColor={Style.buttonFocusedColor}>
-              <Text style={styles.buttonText}>{"Middle Button"}</Text>
-            </TouchableHighlight>
-            <TouchableHighlight
-              onPress={this.componentEventListener.bind(this)}
-              onFocus={this.componentEventListener.bind(this)}
-              onBlur={this.componentEventListener.bind(this)}
-              nativeID={'right_button'}
-              style={styles.button}
-              underlayColor={Style.buttonFocusedColor}>
-              <Text style={styles.buttonText}>{"Right Button"}</Text>
-            </TouchableHighlight>
-          </View>
-          <Text style={[styles.eventHeader, styles.tvEventHeader]}>TVEventHandler events</Text>
-          <Text style={styles.eventType} numberOfLines={EventsDemo.EVENT_LINES}>
-            {this.state.tvEventStack.join("\n")}
-          </Text>
-          <Text style={styles.eventHeader}>TouchableHighlight events</Text>
-          <Text style={styles.eventType} numberOfLines={EventsDemo.EVENT_LINES}>
-            {this.state.componentEventStack.join("\n")}
-          </Text>
-        </View>
+  return (
+    <View style={Style.styles.right}>
+      <View style={Style.styles.header}>
+        <Text style={Style.styles.headerText}>{'Events Demo'}</Text>
       </View>
-    );
-  }
-}
+      <View style={Style.styles.content}>
+        <View style={styles.buttons}>
+          <FocusableHighlight
+            nativeID={'events_left_button'}
+            onPress={componentEventListener}
+            onFocus={componentEventListener}
+            onBlur={componentEventListener}
+            style={styles.button}
+            underlayColor={Style.buttonFocusedColor}>
+            <Text style={styles.buttonText}>{'Left Button'}</Text>
+          </FocusableHighlight>
+          <FocusableHighlight
+            nativeID={'events_middle_button'}
+            onPress={componentEventListener}
+            onFocus={componentEventListener}
+            onBlur={componentEventListener}
+            style={styles.button}
+            hasTVPreferredFocus={true}
+            underlayColor={Style.buttonFocusedColor}>
+            <Text style={styles.buttonText}>{'Middle Button'}</Text>
+          </FocusableHighlight>
+          <FocusableHighlight
+            nativeID={'events_right_button'}
+            onPress={componentEventListener}
+            onFocus={componentEventListener}
+            onBlur={componentEventListener}
+            style={styles.button}
+            underlayColor={Style.buttonFocusedColor}>
+            <Text style={styles.buttonText}>{'Right Button'}</Text>
+          </FocusableHighlight>
+        </View>
+        <Text style={[styles.eventHeader, styles.tvEventHeader]}>
+          TVEventHandler events
+        </Text>
+        <Text style={styles.eventType} numberOfLines={EventsDemo.EVENT_LINES}>
+          {tvEventStack.join('\n')}
+        </Text>
+        <Text style={styles.eventHeader}>TouchableHighlight events</Text>
+        <Text style={styles.eventType} numberOfLines={EventsDemo.EVENT_LINES}>
+          {componentEventStack.join('\n')}
+        </Text>
+      </View>
+    </View>
+  );
+};
 
 export default EventsDemo;
 

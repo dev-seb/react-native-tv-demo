@@ -1,282 +1,412 @@
-import React, {Component} from 'react';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
+import shaka from 'shaka-player';
+
+const FORMAT_HTML5 = 'HTML5';
+const FORMAT_HLS = 'HLS';
+const FORMAT_DASH = 'DASH';
 
 /**
- * react-native-video component for react-native-web
+ * react-native-video components for react-native-web
  */
-class Video extends Component {
+const Video = forwardRef((props, ref) => {
+  const {
+    source,
+    poster,
+    paused,
+    autoplay,
+    controls,
+    muted,
+    repeat,
+    inline,
+    volume,
+    rate,
+    onLoad,
+    onLoadStart,
+    onReadyForDisplay,
+    onPlaybackRateChange,
+    onProgress,
+    onSeek,
+    onEnd,
+    onError,
+    onExitFullscreen,
+  } = props;
 
-  constructor(props) {
-    super(props);
-    // Init refs
-    this.video = null;
-    this.readyForDisplay = false;
-    // Bind functions
-    this.onLoadedMetadata = this.onLoadedMetadata.bind(this);
-    this.onLoadStart = this.onLoadStart.bind(this);
-    this.onWaiting = this.onWaiting.bind(this);
-    this.onLoadedData = this.onLoadedData.bind(this);
-    this.onPlay = this.onPlay.bind(this);
-    this.onPause = this.onPause.bind(this);
-    this.onRateChange = this.onRateChange.bind(this);
-    this.onTimeUpdate = this.onTimeUpdate.bind(this);
-    this.onSeeked = this.onSeeked.bind(this);
-    this.onEnded = this.onEnded.bind(this);
-    this.onError = this.onError.bind(this);
-  }
+  // State
+  const [format, setFormat] = useState(FORMAT_HTML5);
+  const [shakaPlayer, setShakaPlayer] = useState(null);
 
-  // react-native-video API
+  // Video ref
+  const video = useRef(null);
 
-  rate(rate) {
-    if(this.video) {
-      if(rate === 0) {
-        this.video.pause();
+  useEffect(() => {
+    //console.log('Video.useEffect([])');
+    // Bind listeners
+    bindListeners();
+    return () => {
+      // Destroy shaka palyer
+      if (shakaPlayer) {
+        shakaPlayer.destroy();
       }
-      else {
-        this.video.play();
+      // Unbind listeners
+      unbindListeners();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (source) {
+      // Get file extension from source
+      const extension = source.split(/[#?]/)[0].split('.').pop().trim();
+      // Get format
+      let format = FORMAT_HTML5;
+      if (extension === 'm3u8') {
+        format = FORMAT_HLS;
+      } else if (extension === 'mpd') {
+        format = FORMAT_DASH;
+        setShakaPlayer(new shaka.Player(video.current));
+      }
+      setFormat(format);
+    }
+  }, [source]);
+
+  useEffect(() => {
+    //console.log('Video.useEffect([shakaPlayer, source])');
+    if (shakaPlayer && source) {
+      shakaPlayer.load(source);
+    }
+  }, [shakaPlayer, source]);
+
+  useEffect(() => {
+    //console.log("Video.useEffect([paused])", paused);
+    // Toggle play / pause from parent
+    if (paused === false) {
+      play();
+    } else if (paused === true) {
+      pause();
+    }
+  }, [paused]);
+
+  useEffect(() => {
+    console.log('rate: ', rate);
+    if (rate) {
+      if (rate === 0) {
+        pause();
+      } else {
+        play();
         // TODO: handle rate < 1
       }
     }
-  }
+  }, [rate]);
 
-  seek(time) {
-    if(this.video) {
-      if(time >= 0 && time < this.video.duration) {
-        this.video.currentTime = time;
+  useEffect(() => {
+    if (volume >= 0 && volume <= 1) {
+      video.current.volume = volume;
+    }
+  }, [volume]);
+
+  // Private methods
+
+  function play() {
+    //console.log('Video.play()');
+    if (video.current.paused) {
+      if (video.current.currentTime > 0 || !autoplay) {
+        // Handle old exception
+        let playPromise = null;
+        try {
+          playPromise = video.current.play();
+        } catch (error) {
+          onError(error);
+        }
+        // Handle promise
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              // playback started
+            })
+            .catch((error) => {
+              onError(error);
+            });
+        }
       }
     }
   }
 
-  presentFullscrenPlayer() {
-    if(this.video) {
-      if (this.video.requestFullscreen) {
-        this.video.requestFullscreen();
+  function pause() {
+    //console.log('Video.pause()');
+    if (!video.current.paused) {
+      video.current.pause();
+    }
+  }
+
+  // react-native-video API (public methods)
+
+  useImperativeHandle(ref, () => ({
+    /**
+     * react-native-video seek() method requires seconds
+     *
+     * @param seconds
+     */
+    seek: (seconds) => {
+      //console.log('Video.seek(' + seconds + ')');
+      if (seconds) {
+        if (seconds >= 0 && seconds < video.current.duration) {
+          video.current.currentTime = seconds;
+        }
       }
-      // Deprecated
-      else if (this.video.enterFullscreen) {
-        this.video.enterFullscreen();
+    },
+
+    presentFullscrenPlayer: () => {
+      //console.log('Video.presentFullscreenPlayer()');
+      if (video) {
+        if (video.current.requestFullscreen) {
+          video.current.requestFullscreen();
+        }
+        // Deprecated
+        else if (video.current.enterFullscreen) {
+          video.current.enterFullscreen();
+        } else if (video.current.webkitEnterFullscreen) {
+          video.current.webkitEnterFullscreen();
+        }
       }
-    }
-  }
+    },
 
-  dismissFullscreenPlayer() {
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
-    }
-  }
-
-  volume(volume) {
-    if(volume >= 0 && volume <= 1) {
-      this.video.volume = volume;
-    }
-  }
-
+    dismissFullscreenPlayer: () => {
+      //console.log('Video.dismissFullscreenPlayer()');
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    },
+  }));
 
   // react-native-video callback proxy
 
   /**
-   * onLoadedMetadata => onLoad
+   * loadedmetadata => onLoad
    */
-  onLoadedMetadata() {
-    if(this.props.onLoad && this.video) {
-      this.props.onLoad({
+  function onVideoLoadedMetadata() {
+    //console.log('Video.onVideoLoadedMetadata()');
+    if (onLoad && video) {
+      onLoad({
         currentPosition: 0,
-        duration: this.video.duration,
+        duration: video.current.duration,
         // TODO: naturalSize, audioTracks, textTracks
-      })
+      });
     }
   }
 
   /**
-   * onLoadStart => onLoadStart
+   * loadstart => onLoadStart
    */
-  onLoadStart() {
-    if(this.props.onLoadStart && this.video) {
-      this.props.onLoadStart({
+  function onVideoLoadStart() {
+    if (source) {
+      //console.log('Video.onVideoLoadStart()');
+      if (onLoadStart && video) {
+        onLoadStart({
+          isNetwork: true,
+          type: '',
+          uri: source.uri,
+        });
+      }
+    }
+  }
+
+  /**
+   * waiting => onLoadStart
+   */
+  function onVideoWaiting() {
+    //console.log('Video.onVideoWaiting()');
+    if (onLoadStart && video) {
+      onLoadStart({
         isNetwork: true,
         type: '',
-        uri: this.props.source.uri
-      })
-    }
-  }
-
-
-  /**
-   * onWaiting => onLoadStart
-   */
-  onWaiting() {
-    if(this.props.onLoadStart && this.video) {
-      this.props.onLoadStart({
-        isNetwork: true,
-        type: '',
-        uri: this.props.source.uri
-      })
+        uri: source.uri,
+      });
     }
   }
 
   /**
-   * onLoadedData => onReadyForDisplay
+   * canplaythrough => onReadyForDisplay
    */
-  onLoadedData() {
-    if(
-      this.props.onReadyForDisplay
-      && this.video
-      && !this.readyForDisplay
-    ) {
-      this.readyForDisplay = true;
-      this.props.onReadyForDisplay();
+  function onVideoCanPlayThrough() {
+    //console.log('Video.onVideoCanPlayThrough()');
+    if (video) {
+      if (onReadyForDisplay) {
+        onReadyForDisplay();
+      }
     }
   }
 
   /**
-   * onPlay => onPlaybackRateChange
+   * play => onPlaybackRateChange
    */
-  onPlay() {
-    if(this.props.onPlaybackRateChange) {
-      this.props.onPlaybackRateChange({playbackRate: 1});
+  function onVideoPlay() {
+    //console.log('Video.onVideoPlay()');
+    if (onPlaybackRateChange) {
+      onPlaybackRateChange({playbackRate: 1});
     }
   }
 
   /**
-   * onPause => onPlaybackRateChange
+   * pause => onPlaybackRateChange
    */
-  onPause() {
-    if(this.props.onPlaybackRateChange) {
-      this.props.onPlaybackRateChange({playbackRate: 0});
+  function onVideoPause() {
+    //console.log('Video.onVideoPause()');
+    if (onPlaybackRateChange) {
+      onPlaybackRateChange({playbackRate: 0});
     }
   }
 
   /**
-   * onRateChange => onPlaybackRateChange
+   * ratechange => onPlaybackRateChange
    */
-  onRateChange(rate) {
-    if(this.props.onPlaybackRateChange) {
-      this.props.onPlaybackRateChange({playbackRate: rate});
+  function onVideoRateChange() {
+    //console.log('Video.onVideoRateChange()');
+    if (onPlaybackRateChange && video) {
+      onPlaybackRateChange({
+        playbackRate: video.current.playbackRate,
+      });
     }
   }
 
   /**
-   * onTimeUpdate => onProgress
+   * timeupdate => onProgress
    */
-  onTimeUpdate() {
-    if(this.props.onProgress && this.video) {
-      this.props.onProgress({
-        currentTime: this.video.currentTime,
-        // TODO: playbableDuration, seekableDuration
-      })
+  function onVideoTimeUpdate() {
+    //console.log('Video.onVideoTimeUpdate()');
+    if (onProgress && video) {
+      onProgress({
+        seekableDuration: video.current.duration,
+        playbableDuration: video.current.duration,
+        currentTime: video.current.currentTime,
+      });
     }
   }
 
   /**
-   * onSeeked => onSeek
+   * seeked => onSeek
    */
-  onSeeked() {
-    if(this.props.onSeek && this.video) {
-      this.props.onSeek({
-        currentTime: this.video.currentTime,
-        seekTime: this.video.currentTime,
-      })
+  function onVideoSeeked() {
+    //console.log('Video.onVideoSeeked()');
+    if (onSeek && video) {
+      onSeek({
+        currentTime: video.current.currentTime,
+        seekTime: video.current.currentTime,
+      });
     }
   }
 
   /**
-   * onEnded => onEnd
+   * ended => onEnd
    */
-  onEnded() {
-    if(this.props.onEnd) {
-      this.props.onEnd();
+  function onVideoEnded() {
+    //console.log('Video.onVideoEnded()');
+    if (onEnd) {
+      onEnd();
     }
   }
 
   /**
-   * onError => onError
+   * error => onError
    */
-  onError() {
-    let error = {};
-    // TODO: return same errors as react-native-video
-    if(this.props.onError) {
-      this.props.onError(error);
+  function onVideoError() {
+    if (source) {
+      //console.log('Video.onVideoError()');
+      let error = {};
+      // TODO: return same errors as react-native-video
+      if (onError) {
+        onError(error);
+      }
+    }
+  }
+
+  /**
+   * Get exit fullscreen event for webkit
+   */
+  function onVideoEndFullscreen() {
+    //console.log('Video.onVideoEndFullscreen()');
+    if (onExitFullscreen) {
+      onExitFullscreen();
+    }
+  }
+
+  /**
+   * get exit fullscreen event for firefox
+   */
+  function onVideoFullscreenChange(e) {
+    //console.log('Video.onVideoEndFullscreen()');
+    if (document.fullscreenElement) {
+      // enter fullscreen
+    } else if (onExitFullscreen) {
+      onExitFullscreen();
     }
   }
 
   // Listeners
 
-  componentDidMount() {
-    this.bindListeners();
-  }
-
-  componentWillUnmount() {
-    this.unbindListeners();
-  }
-
-  componentDidUpdate(prevProps) {
-    if(this.props.paused === false
-      //&& prevProps.paused === true
-    ) {
-      if(this.video.paused) {
-        this.video.play();
-      }
+  function bindListeners() {
+    //console.log('Video.bindListeners()');
+    if (video && video.current) {
+      // Unsupported native listeners
+      video.current.addEventListener(
+        'webkitendfullscreen',
+        onVideoEndFullscreen,
+      );
     }
-    else if(this.props.paused === true
-      //&& prevProps.paused === false
-    ) {
-      if(!this.video.paused) {
-        this.video.pause();
-      }
-    }
+    // Listeners on document
+    document.addEventListener('fullscreenchange', onVideoFullscreenChange);
   }
 
-  bindListeners() {
-    if(this.video) {
-      // Bind all listeners
-      this.video.addEventListener('loadedmetadata', this.onLoadedMetadata);
-      this.video.addEventListener('loadstart', this.onLoadStart);
-      this.video.addEventListener('waiting', this.onWaiting);
-      this.video.addEventListener('canplaythrough', this.onLoadedData);
-      this.video.addEventListener('play', this.onPlay);
-      this.video.addEventListener('pause', this.onPause);
-      this.video.addEventListener('ratechange', this.onRateChange);
-      this.video.addEventListener('seeked', this.onSeeked);
-      this.video.addEventListener('timeupdate', this.onTimeUpdate);
-      this.video.addEventListener('ended', this.onEnded);
-      this.video.addEventListener('error', this.onError);
+  function unbindListeners() {
+    //console.log('Video.unbindListeners()');
+    if (video && video.current) {
+      // Unsupported native listeners
+      video.current.removeEventListener(
+        'webkitendfullscreen',
+        onVideoEndFullscreen,
+      );
+      // Listeners on document
+      document.removeEventListener('fullscreenchange', onVideoFullscreenChange);
     }
   }
 
-  unbindListeners() {
-    if(this.video) {
-      // Unbind all listeners
-      this.video.removeEventListener('loadedmetadata', this.onLoadedMetadata);
-      this.video.removeEventListener('loadstart', this.onLoadStart);
-      this.video.removeEventListener('waiting', this.onWaiting);
-      this.video.removeEventListener('canplaythrough', this.onLoadedData());
-      this.video.removeEventListener('play', this.onPlay);
-      this.video.removeEventListener('pause', this.onPause);
-      this.video.removeEventListener('ratechange', this.onRateChange);
-      this.video.removeEventListener('seeked', this.onSeeked);
-      this.video.removeEventListener('timeupdate', this.onTimeUpdate);
-      this.video.removeEventListener('ended', this.onEnd);
-      this.video.removeEventListener('error', this.onError);
-    }
-  }
+  // Optional params
+  let controlsProp = controls ? {controls: 'controls'} : {};
+  let autoPlayProp = autoplay ? {autoplay: 'autoplay'} : {};
+  let mutedProp = muted ? {muted: 'muted'} : {};
+  let repeatProp = repeat ? {loop: 'loop'} : {};
+  let playsInlineProp = inline ? {playsInline: 'playsInline'} : {};
 
-  render() {
-    // Options params
-    let controls = this.props.controls ? {'controls' : 'controls'} : {};
-    let muted = this.props.controls ? {'muted' : 'muted'} : {};
-    let repeat = this.props.repeat ? {'repeat' : 'repeat'} : {};
-    // Build <video> element
-    return (
-      <video
-        ref={ref => this.video = ref}
-        src={this.props.source.uri || this.props.source}
-        poster={this.props.poster}
-        style={{width: '100%', height: '100%'}}
-        {...controls}
-        {...muted}
-        {...repeat}
-        />
-    );
-  }
-}
+  // Build <video> element
+  return (
+    <video
+      className="video"
+      ref={video}
+      src={source.uri || source}
+      poster={poster}
+      {...controlsProp}
+      {...autoPlayProp}
+      {...mutedProp}
+      {...repeatProp}
+      {...playsInlineProp}
+      onLoadedMetadata={onVideoLoadedMetadata}
+      onLoadStart={onVideoLoadStart}
+      onWaiting={onVideoWaiting}
+      onCanPlayThrough={onVideoCanPlayThrough}
+      onPlay={onVideoPlay}
+      onPause={onVideoPause}
+      onRateChange={onVideoRateChange}
+      onSeeked={onVideoSeeked}
+      onTimeUpdate={onVideoTimeUpdate}
+      onEnded={onVideoEnded}
+      onError={onVideoError}
+      style={{width: '100%', height: '100%'}}
+    />
+  );
+});
 
 export default Video;

@@ -1,146 +1,152 @@
-import React, {Component} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   ScrollView,
   Image,
   Text,
   TextInput,
-  TouchableHighlight,
   StyleSheet,
+  Platform,
 } from 'react-native';
-import Style from "../Style";
+import Style from '../../styles/Style';
+import clearImageSource from '../../assets/clear.png';
+import FocusableHighlight from '../focusable/FocusableHighlight';
 
-class InputDemo extends Component {
+const AUTOCOMPLETE_THRESHOLD = 600;
 
-  static AUTOCOMPLETE_THRESHOLD = 600;
+const InputDemo = () => {
+  const inputTextRef = useRef(null);
 
-  constructor(props) {
-    super(props);
-    // Bind function
-    this.resetSearch = this.resetSearch.bind(this);
-    this.triggerAutocompleteSearch = this.triggerAutocompleteSearch.bind(this);
-    // Init
-    this.autocompleteTimer = null;
-    // Init refs
-    this.inputTextRef = React.createRef();
-    // Init state
-    this.state = {
-      textInputFocused: false,
-      clearButtonFocused: false,
-      searchResults: [],
-      searchResultsEmpty: false,
+  const [textInputFocused, setTextInputFocused] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchResultsEmpty, setSearchResultsEmpty] = useState(false);
+
+  let autocompleteTimer = null;
+
+  useEffect(() => {
+    if (inputTextRef.current) {
+      inputTextRef.current.focus();
+    }
+    // Clean up
+    return () => {
+      clearTimeout(autocompleteTimer);
     };
-  }
+  }, [autocompleteTimer]);
 
-  resetSearch() {
+  function resetSearch() {
     // Reset search
-    this.setState({
-      searchResults: [],
-      searchResultsEmpty: false,
-    });
+    setSearchResults([]);
+    setSearchResultsEmpty(false);
   }
 
-  triggerAutocompleteSearch(text) {
-    console.log("triggerAutocompleteSearch(" + text + ")");
-    if(text === '') {
-      this.resetSearch();
+  function triggerAutocompleteSearch(text) {
+    console.log('triggerAutocompleteSearch(' + text + ')');
+    if (text === '') {
+      resetSearch();
       return;
     }
     // Filter list of countries
-    const searchResults = countries.filter(
-      country => {
-        return country.toLowerCase().indexOf(text.toLowerCase()) === 0;
-      }
-    );
-    // Show results
-    this.setState({
-      searchResults: searchResults,
-      searchResultsEmpty: searchResults.length === 0
+    const newSearchResults = countries.filter((country) => {
+      return country.toLowerCase().indexOf(text.toLowerCase()) === 0;
     });
+    // Update results
+    setSearchResults(newSearchResults);
+    setSearchResultsEmpty(newSearchResults.length === 0);
   }
 
-  onKeyPress(event) {
-    //console.log("onKeyPress", event);
+  function onKeyPress(event) {
+    //console.log('onKeyPress', event);
   }
 
-  onChange(event) {
+  function onChange(event) {
     //console.log("onChange", event);
   }
 
-  onChangeText(text) {
+  function onChangeText(text) {
     //console.log("onChangeText", text);
-    if(this.autocompleteTimer) {
-      clearTimeout(this.autocompleteTimer);
+    if (autocompleteTimer) {
+      clearTimeout(autocompleteTimer);
     }
-    this.autocompleteTimer = setTimeout(
-      ()=> {
-        this.triggerAutocompleteSearch(text)
-      },
-      InputDemo.AUTOCOMPLETE_THRESHOLD
-    )
+    autocompleteTimer = setTimeout(() => {
+      triggerAutocompleteSearch(text);
+    }, AUTOCOMPLETE_THRESHOLD);
   }
 
-  onSubmitEditing(event) {
+  function onSubmitEditing(event) {
     //console.log("onEndEditing", event);
   }
 
-  render() {
-    return (
-      <View style={Style.styles.right}>
-        <View style={Style.styles.header}>
-          <Text style={Style.styles.headerText}>{"Input Demo"}</Text>
-        </View>
-        <View style={Style.styles.content}>
-          <View style={[
-              styles.textInputContainer,
-              this.state.textInputFocused && styles.textInputContainerFocused
+  return (
+    <View style={Style.styles.right}>
+      <View style={Style.styles.header}>
+        <Text style={Style.styles.headerText}>{'Input Demo'}</Text>
+      </View>
+      <View style={Style.styles.content}>
+        <View
+          style={[
+            styles.textInputContainer,
+            textInputFocused && styles.textInputContainerFocused,
           ]}>
-            <TextInput
-              ref={ref => this.inputTextRef = ref}
-              onKeyPress={this.onKeyPress.bind(this)}
-              onChange={this.onChange.bind(this)}
-              onChangeText={this.onChangeText.bind(this)}
-              onSubmitEditing={this.onSubmitEditing.bind(this)}
-              onFocus={()=>this.setState({textInputFocused: true})}
-              onBlur={()=>this.setState({textInputFocused: false})}
-              placeholder={"Search..."}
-              placeholderTextColor={"gray"}
-              clearButtonMode={'always'}
-              autoCorrect={false}
-              autoFocus={false}
-              style={styles.textInput}
-            />
-            <TouchableHighlight
-              onPress={()=>{
-                if(this.inputTextRef) {
-                  this.inputTextRef.clear();
-                  this.resetSearch();
+          <TextInput
+            ref={inputTextRef}
+            onKeyPress={onKeyPress}
+            onChange={onChange}
+            onChangeText={onChangeText}
+            onSubmitEditing={onSubmitEditing}
+            onFocus={() => {
+              setTextInputFocused(true);
+            }}
+            onBlur={() => {
+              setTextInputFocused(false);
+            }}
+            placeholder={'Search...'}
+            placeholderTextColor={'gray'}
+            clearButtonMode={'always'}
+            autoCorrect={false}
+            autoFocus={false}
+            style={styles.textInput}
+          />
+          {Platform.OS === 'android' && (
+            <FocusableHighlight
+              nativeID={'input_dummy_button'}
+              onPress={() => {}}
+              onFocus={() => {
+                if (inputTextRef.current) {
+                  inputTextRef.current.focus();
                 }
               }}
-              onFocus={()=>{this.setState({clearButtonFocused: true})}}
-              onBlur={()=>{this.setState({clearButtonFocused: false})}}
-              underlayColor={"transparent"}
-              style={[
-                styles.textInputClearButton,
-                this.state.clearButtonFocused && styles.textInputClearButtonFocused
-              ]}
-            >
-              <Image
-                source={require('../../assets/clear.png')}
-                style={styles.textInputClearImage}
-              />
-            </TouchableHighlight>
-          </View>
-          <ScrollView style={styles.searchResultsContainer}>
-            <Text style={styles.searchResults}>
-              {this.state.searchResultsEmpty ? "No results" : this.state.searchResults.join("\n")}
-            </Text>
-          </ScrollView>
+              hasTVPrefferedFocus={true}
+              style={styles.dummyFocusable}>
+              <Text />
+            </FocusableHighlight>
+          )}
+          <FocusableHighlight
+            nativeID={'input_clear_button'}
+            onPress={() => {
+              if (inputTextRef.current) {
+                inputTextRef.current.clear();
+              }
+              resetSearch();
+            }}
+            underlayColor={'transparent'}
+            style={styles.textInputClearButton}
+            styleFocused={styles.textInputClearButtonFocused}>
+            <Image
+              source={clearImageSource}
+              style={styles.textInputClearImage}
+              nativeID={'_image_'}
+            />
+          </FocusableHighlight>
         </View>
+        <ScrollView style={styles.searchResultsContainer}>
+          <Text style={styles.searchResults}>
+            {searchResultsEmpty ? 'No results' : searchResults.join('\n')}
+          </Text>
+        </ScrollView>
       </View>
-    );
-  }
-}
+    </View>
+  );
+};
 
 export default InputDemo;
 
@@ -160,12 +166,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   textInputContainerFocused: {
-    borderColor: '#61dafb'
+    borderColor: '#61dafb',
   },
   textInput: {
     width: Style.px(600),
     height: Style.px(70),
-    padding: Style.px(20),
+    padding: Style.px(10),
     fontSize: Style.px(40),
   },
   textInputClearButton: {
@@ -193,6 +199,10 @@ const styles = StyleSheet.create({
   searchResults: {
     fontSize: Style.px(30),
     color: 'white',
+  },
+  dummyFocusable: {
+    width: 0,
+    height: 0,
   },
 });
 
@@ -255,7 +265,7 @@ const countries = [
   'Cook Islands',
   'Coral Sea Islands',
   'Costa Rica',
-  'Cote d\'Ivoire',
+  "Cote d'Ivoire",
   'Croatia',
   'Cuba',
   'Cyprus',
@@ -452,5 +462,5 @@ const countries = [
   'Western Sahara',
   'Yemen',
   'Zambia',
-  'Zimbabwe'
+  'Zimbabwe',
 ];

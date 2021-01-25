@@ -1,36 +1,37 @@
 {
-  "name": "TVAppDemo",
+  "name": "react-native-tv-demo",
   "version": "0.0.1",
   "private": true,
   "scripts": {
     "start": "react-native start",
     "android": "react-native run-android",
-    "ios": "react-native run-ios",
+    "ios": "react-native run-ios --simulator='Apple TV'",
     "web": "react-app-rewired start",
     "web:build": "react-app-rewired build"
   },
   "dependencies": {
-    "@react-native-community/masked-view": "^0.1.7",
+    "@react-native-community/masked-view": "^0.1.10",
+    "@react-navigation/native": "^5.9.0",
+    "@react-navigation/stack": "^5.13.0",
     "@react-navigation/web": "^1.0.0-alpha.9",
-    "react": "16.9.0",
-    "react-dom": "^16.13.0",
-    "react-native": "0.61.5",
-    "react-native-gesture-handler": "^1.6.0",
-    "react-native-reanimated": "^1.7.0",
-    "react-native-safe-area-context": "^0.6.4",
-    "react-native-screens": "^2.3.0",
-    "react-native-video": "^5.0.2",
-    "react-native-web": "file:./react-native-web/packages/react-native-web",
-    "react-navigation": "^4.3.1",
-    "react-navigation-stack": "^2.3.1"
+    "react": "16.13.1",
+    "react-dom": "16.13.1",
+    "react-native": "^0.63.4",
+    "react-native-gesture-handler": "^1.9.0",
+    "react-native-reanimated": "^1.13.2",
+    "react-native-safe-area-context": "^3.1.9",
+    "react-native-screens": "^2.16.1",
+    "react-native-video": "^5.1.1",
+    "react-native-web": "./react-native-web/packages/react-native-web"
   },
   "devDependencies": {
-    "@babel/core": "^7.8.7",
-    "@babel/runtime": "^7.8.7",
-    "metro-react-native-babel-preset": "^0.56.0",
-    "react-app-rewired": "^2.1.5",
-    "react-scripts": "^3.4.0",
-    "react-test-renderer": "16.9.0"
+    "@babel/core": "^7.12.10",
+    "@babel/runtime": "^7.12.5",
+    "@react-native-community/eslint-config": "^2.0.0",
+    "eslint": "^7.18.0",
+    "metro-react-native-babel-preset": "^0.64.0",
+    "react-app-rewired": "^2.1.8",
+    "react-scripts": "^4.0.1"
   },
   "alias": {
     "react-native": "react-native-web"

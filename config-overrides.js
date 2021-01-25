@@ -9,7 +9,7 @@ module.exports = {
   webpack: (config, env) => {
     config.resolve = {
       alias: {
-        'react-native$': 'react-native-web',
+        'react-native$': 'react-native-web'
       },
       extensions: [
         '.web.js',

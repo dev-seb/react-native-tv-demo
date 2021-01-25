@@ -1,19 +1,13 @@
-import React, {Component} from 'react';
-import {
-  View,
-  Text,
-} from 'react-native';
-import Style from "../Style";
+import React from 'react';
+import {View, Text} from 'react-native';
+import Style from '../../styles/Style';
 
-class Header extends Component {
-
-  render() {
-    return (
-      <View style={Style.styles.header}>
-        <Text style={Style.styles.headerText}>{this.props.title}</Text>
-      </View>
-    );
-  }
-}
+const Header = ({title}) => {
+  return (
+    <View style={Style.styles.header}>
+      <Text style={Style.styles.headerText}>{title}</Text>
+    </View>
+  );
+};
 
 export default Header;

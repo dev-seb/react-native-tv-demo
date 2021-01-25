@@ -1,52 +1,42 @@
-import React, {Component} from 'react';
-import {
-  TouchableHighlight,
-  View,
-  Text,
-  Image,
-  StyleSheet,
-} from 'react-native';
-import Style from "./Style";
+import React, {useContext} from 'react';
+import {View, Text, Image, StyleSheet} from 'react-native';
+import {navigate} from '../Navigation';
+import {AppContext} from '../AppProvider';
+import Style from '../styles/Style';
+import reactLogoImageSource from '../assets/react_logo.png';
+import FocusableHighlight from './focusable/FocusableHighlight';
 
-class Menu extends Component {
+const Menu = () => {
+  const [appContext, setAppContext] = useContext(AppContext);
 
-  constructor(props) {
-    super(props);
-    this.showItem = this.showItem.bind(this);
-  }
-
-  showItem(item) {
-    this.props.navigate(item);
-  }
-
-  showMenu() {
-    let items = ["Events", "Focus", "Scroll", "Input", "Video"];
+  function showMenu() {
+    const items = ['Components', 'Events', 'Focus', 'Scroll', 'Input', 'Video'];
     return items.map((item) => {
-      let key = 'menu_' + item;
+      const key = 'menu_' + item.toLowerCase();
+      const route = item.toLowerCase();
       return (
-        <TouchableHighlight
-          onPress={() => {this.showItem(item.toLowerCase())}}
+        <FocusableHighlight
+          onPress={() => {
+            navigate(route);
+          }}
           underlayColor={Style.buttonFocusedColor}
           style={styles.menuItem}
+          nativeID={key}
           key={key}>
           <Text style={styles.text}>{item}</Text>
-        </TouchableHighlight>
+        </FocusableHighlight>
       );
     });
   }
 
-  render() {
-    return (
-      <View style={styles.left}>
-        <Image style={styles.logo} source={require('../assets/react_logo.png')} />
-        <Text style={styles.title}>{"React Native TV"}</Text>
-        <View style={styles.menu}>
-          {this.showMenu()}
-        </View>
-      </View>
-    );
-  }
-}
+  return appContext.menuVisible ? (
+    <View style={styles.left}>
+      <Image style={styles.logo} source={reactLogoImageSource} />
+      <Text style={styles.title}>{'React Native TV'}</Text>
+      <View style={styles.menu}>{showMenu()}</View>
+    </View>
+  ) : null;
+};
 
 export default Menu;
 
@@ -64,11 +54,11 @@ const styles = StyleSheet.create({
     height: Style.px(100),
     margin: Style.px(100),
     marginBottom: Style.px(20),
-    resizeMode: 'contain'
+    resizeMode: 'contain',
   },
   title: {
     fontSize: Style.px(30),
-    color: 'white'
+    color: 'white',
   },
   menu: {
     width: Style.px(400),
@@ -79,7 +69,7 @@ const styles = StyleSheet.create({
   },
   menuItem: {
     width: Style.px(300),
-    height: Style.px(100),
+    height: Style.px(90),
     margin: Style.px(10),
     backgroundColor: Style.buttonUnfocusedColor,
     justifyContent: 'center',

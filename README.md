@@ -3,11 +3,13 @@
 Sample React Native project to test basic features on TV devices.
 
 React Native has a documentation for building for TV Devices :<br />
-https://reactnative.dev/docs/building-for-apple-tv<br />
+https://reactnative.dev/docs/building-for-tv<br />
     
-This sample project provides UI elements to test compatibility accross targeted native devices and web.
+This sample project provides UI elements to test compatibility across targeted native devices and web.
 
-Once the app is installed on the device, is is possible to test the following elements:
+Once the app is installed on the device, it is possible to test the following elements:
+
+ - Components
  - Events
  - Focus
  - Scroll
@@ -21,28 +23,43 @@ Install :
 ```
 git clone git@github.com:dev-seb/react-native-tv-demo.git
 cd react-native-tv-demo/
-npm install
+yarn install
 ```
 
 Test :
 
 ```
 # AndroidTV
-npm run android
+yarn run android
 
 # tvOS
-npm run ios
+yarn run ios
 
 # Browser
-npm run web
+yarn run web
 ```
  
 ## Demos
 
+### Components
+
+![ComponentsDemo](./doc/components.gif)
+
+ - TouchableHighlight
+ - TouchabeOpacity
+ - Button
+ - Switch
+ - TextInput
+ - Modal
+ - Activity Indicator
+ - Image
+ - ImageBackground
+ 
 ### Events
 
 ![EventsDemo](./doc/events.gif)
 
+- BackHandler global events
 - TVEventHandler global events 
 - Touchable events : onPress, onFocus, and onBlur.
 
@@ -56,6 +73,7 @@ npm run web
 - nextFocusUp
 - nextFocusLeft
 - nextFocusRight
+- nextFocusForward
 - change style on select
 - change style on press
 - tvParallaxProperties
@@ -64,6 +82,10 @@ npm run web
 
 ![ScrollDemo](./doc/scroll.gif)
 
+- ScrollView
+- nested ScrollViews
+- FlatList
+- SectionList
 - vertical scroll
 - horizontal scroll
 - align vertically selected item
@@ -85,6 +107,8 @@ npm run web
 - duration
 - fullscreen
 - overlay with timer
+- progressbar
+- seek feature
 
 ## Web support
 
@@ -104,14 +128,14 @@ Install and build from sources :
 git clone git@github.com:dev-seb/react-native-web.git
 cd react-native-web/
 git checkout feature/tv-support
-npm install
-npm run compile
+yarn install
+yarn run compile
 ```
 
 Return to project root directory and add dependency locally :
 
 ```
-npm install ./react-native-web/packages/react-native-web/
+yarn add ./react-native-web/packages/react-native-web/
 ```
 
 This fork requires the following env to be set in .env file :
@@ -122,13 +146,21 @@ REACT_APP_IS_TV=true
 
 This will add support for Platform.isTV property.
 
+### Add Web support for react navigation
+
+Since v5.x, react navigation support Web Browsers. Just add the dependency : 
+
+```
+yarn add @react-navigation/web
+``` 
+
 ### Add react-dom and react-scripts :
 
 To bundle our code for web, we need react-dom and react-scripts : 
 
 ```
-npm install react-dom
-npm install react-scripts --save-dev
+yarn add react-dom
+yarn add react-scripts --save-dev
 ```
 
 ### Move web assets to "web" platform directory
@@ -154,9 +186,9 @@ AppRegistry.runApplication("MyTVApp", {
 
 ### Add spatialNavigationPolyfill dependencies
 
-AndroidTV and tvOS have build-in spatial navigation managment.
+AndroidTV and tvOS have build-in spatial navigation management.
 
-On web we can rely on the spatialNavigationPolyfill library to get a similar bahaviour:<br />
+On web we can rely on the spatialNavigationPolyfill library to get a similar behaviour:<br />
 https://github.com/WICG/spatial-navigation/polyfill
 
 Download the dependency at the root of the web directory and include it from the web/index.js file :
@@ -167,10 +199,10 @@ import './spatialNavigationPolyfill.js';
 
 ### Override react-scripts config
 
-Install react-app-rewrired in order to override react-scripts configuration :
+Install react-app-rewired in order to override react-scripts configuration :
 
 ```
-npm install react-app-rewired --save-dev
+yarn add react-app-rewired --save-dev
 ```
 
 Add a "config-overrides.js" file at the root of the project :
@@ -198,7 +230,7 @@ module.exports = {
   },
 
   /**
-   * Changes paths to web/
+   * Changes some paths to web/ directory
    */
   paths: (paths, env) => {
     paths.appBuild = paths.appPath + '/web/build';
@@ -250,73 +282,67 @@ As we want to add the web as an other platform, we add this lines in the scripts
 },
 ```
 
-Now we can use the npm command for web platform :
+Now we can use the yarn commands for web platform:
 
 ```
-npm run web
-npm run web:build
+yarn run web
+yarn run web:build
 ```
 
-### Troubleshouting 
+### Tips
+
+#### Env
+
+Don't forget the REACT_APP_IS_TV env variable to enable TV features with react-native-web fork.
 
 #### Sources
 
 Move project sources and especially App.js into src/ directory.
 
-See related issue : https://github.com/necolas/react-native-web/issues/794
+See related issue: https://github.com/necolas/react-native-web/issues/794
 
-#### Routing
+#### Node Handle
 
-Routing is slicely different between native and web, so we have to use 2 distinct methods and create 2 App.js files.
+React Native Web returns a DOM object from findNodeHandle(ref.current), but native platforms return a number.
 
-Thanks to the double extension used by react-native and our config override using react-app-rewired, we can seperate routing :
+It is more suitable to use the nativeID attribute instead, for example to test event.eventTag from TVEventHandler callbacks or manage next focus from setNativeProps. 
 
-First we install dependencies for both native and web:
+#### Next Focus 
 
-```
-npm install react-navigation react-navigation-stack
-npm install @react-navigation/web
-```
+There are two ways to manage next focus:
+* Using props as documented in React Native documentation.
+* Using the setNativeProps method as next focus is supported in the react-native-web fork.
 
-We set up routes once in a separate file :
+For props, using findNodeHandle will work on all platforms, though Web seems to require an intermediate state variable to work.
 
-routes.js
+For setNativeProps, we need to have a method that returns handle for native platforms and nativeID for Web (see "Node Handle" explanation for this issue). 
 
-```javascript
-const routes = {
-  home: {screen: Home}
-};
-```
+#### Override navigation
 
-App.native.js
+To lock navigation in one direction, pass the element its own reference using a nextFocus props.<br />
+Then is is possible to catch key events using the TVEventHandler checking the eventTag to perform custom action on this element.
 
-```javascript
-import {createAppContainer} from 'react-navigation';
-import {createStackNavigator} from 'react-navigation-stack';
+#### Override back button
 
-const Navigator = createStackNavigator(routes, {
-  initialRouteName: 'home',
-  headerMode: 'none',
-  animationEnabled: false,
-  gestureEnabled: false
-});
-const Router = createAppContainer(Navigator);
-```
+To lock back button default action, use the react-navigation "breforeRemove" event and call event.preventDefault() if needed. 
 
-App.web.js 
+#### Text Input
 
-```javascript
-import {createSwitchNavigator} from "@react-navigation/core";
-import {createBrowserApp} from "@react-navigation/web";
-
-const Navigator = createSwitchNavigator(routes);
-const Router = createBrowserApp(Navigator);
-```
+On Android Simulator, use directional pad from extended controls instead of computer keyboard to test text input.<br />
+To get the focus on AndroidTV, we use a dummy focusable component to trigger focus from ref during navigation.
 
 #### Video 
 
-For video we use the react-native-video plugin that works great for native app.<br />
-But this plugn doesn't provides support for react-native-web so we have to create the same API for web using <video> element :
+For video we use the react-native-video, but this plugin doesn't provides support for react-native-web.<br />
+We have to create the same APIs for web using the &lt;video&gt; element to get similar bahaviour.
 
-See this file as example : https://github.com/dev-seb/react-native-tv-demo/blob/master/src/components/demos/Video.js
+See this file as example: https://github.com/dev-seb/react-native-tv-demo/blob/master/src/components/demos/Video.js
+
+#### Modal
+
+On Web, we have to override the back button to hide modal, on AndroidTV use onRequestClose on native platforms.
+
+When testing on a browser, the Modal window will be centered inside the browser window.<br />
+Resize your browser or use it on fullscreen mode with zoom to window boundaries to get the modal centered as expected.
+
 
