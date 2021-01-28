@@ -340,7 +340,7 @@ See this file as example: https://github.com/dev-seb/react-native-tv-demo/blob/m
 
 #### Modal
 
-On Web, we have to override the back button to hide modal, on AndroidTV use onRequestClose on native platforms.
+On Web, we have to override the back button to hide modal, on AndroidTV use onRequestClose() callback.
 
 When testing on a browser, the Modal window will be centered inside the browser window.<br />
 Resize your browser or use it on fullscreen mode with zoom to window boundaries to get the modal centered as expected.

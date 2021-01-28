@@ -16,6 +16,7 @@ const AUTOCOMPLETE_THRESHOLD = 600;
 
 const InputDemo = () => {
   const inputTextRef = useRef(null);
+  const resultsRef = useRef(null);
 
   const [textInputFocused, setTextInputFocused] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
@@ -74,6 +75,25 @@ const InputDemo = () => {
 
   function onSubmitEditing(event) {
     //console.log("onEndEditing", event);
+  }
+
+  function showResults() {
+    if (searchResults && searchResults.length > 0) {
+      return searchResults.map((result, key) => {
+        return (
+          <FocusableHighlight
+            onPress={() => {}}
+            style={styles.searchResult}
+            styleFocused={styles.searchResultFocused}
+            stylePressed={styles.searchResultPressed}
+            key={key}>
+            <Text style={styles.searchResultText}>{result}</Text>
+          </FocusableHighlight>
+        );
+      });
+    } else if (searchResultsEmpty) {
+      return <Text style={styles.noResults}>No results</Text>;
+    }
   }
 
   return (
@@ -138,10 +158,12 @@ const InputDemo = () => {
             />
           </FocusableHighlight>
         </View>
-        <ScrollView style={styles.searchResultsContainer}>
-          <Text style={styles.searchResults}>
-            {searchResultsEmpty ? 'No results' : searchResults.join('\n')}
-          </Text>
+        <ScrollView
+          ref={resultsRef}
+          style={styles.searchResultsContainer}
+          nativeID={'results'}
+          showsVerticalScrollIndicator={false}>
+          {showResults()}
         </ScrollView>
       </View>
     </View>
@@ -193,10 +215,30 @@ const styles = StyleSheet.create({
   searchResultsContainer: {
     position: 'absolute',
     top: Style.px(100),
-    width: Style.px(680),
+    width: Style.px(700),
     height: Style.px(600),
   },
-  searchResults: {
+  searchResult: {
+    width: Style.px(680),
+    marginHorizontal: Style.px(10),
+    marginVertical: Style.px(5),
+    borderRadius: Style.px(5),
+    borderWidth: Style.px(5),
+    borderColor: 'transparent',
+  },
+  searchResultFocused: {
+    borderColor: '#61dafb',
+  },
+  searchResultPressed: {
+    backgroundColor: '#ccc',
+  },
+  searchResultText: {
+    fontSize: Style.px(30),
+    color: 'white',
+  },
+  noResults: {
+    width: Style.px(680),
+    marginHorizontal: Style.px(10),
     fontSize: Style.px(30),
     color: 'white',
   },
